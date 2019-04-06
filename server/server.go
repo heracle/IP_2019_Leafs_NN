@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -22,13 +23,14 @@ import (
 )
 
 var (
-	flagPort            = flag.String("port", "2020", "Port to listen on")
+	port                = "23"
+	flagPort            = flag.String("port", port, "Port to listen on")
 	imageFormat         = ".jpeg"
 	descriptionFormat   = ".txt"
 	imagesStorePath     = "data_store/"
 	randStringSize      = 20
 	receiveURL          = "/receive/"
-	receiveCompleteURL  = ":2020" + receiveURL
+	receiveCompleteURL  = port + receiveURL
 	pythonAskForJobPath = "server/ask_for_job.py"
 	maxDescriptionSize  = 10000
 )
@@ -111,6 +113,15 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 // PostHandler converts post request body to string
 func PostHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("here in POST function")
+
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		http.Error(w, "Error reading actual Ip",
+				http.StatusInternalServerError)
+	}
+	userIP := net.ParseIP(ip)
+	fmt.Println("my ip is " + userIP.String() )
+
 	if r.Method == "POST" {
 		fmt.Println("also a POST method")
 		body, err := ioutil.ReadAll(r.Body)

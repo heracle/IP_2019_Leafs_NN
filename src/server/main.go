@@ -23,12 +23,12 @@ import (
 )
 
 var (
-	port                = "2020"
+	port                = "100"
 	flagPort            = flag.String("port", port, "Port to listen on")
 	imageFormat         = ".jpeg"
 	descriptionFormat   = ".txt"
 	imagesStorePath     = "data_store/"
-	randStringSize      = 20
+	randStringSize      = 5
 	receiveURL          = "/receive/"
 	receiveCompleteURL  = port + receiveURL
 	pythonAskForJobPath = "src/server/ask_for_job.py"

@@ -25,13 +25,14 @@ import (
 var (
 	port                = "100"
 	flagPort            = flag.String("port", port, "Port to listen on")
-	imageFormat         = ".jpeg"
+	imageFormat         = ".jpg"
 	descriptionFormat   = ".txt"
 	imagesStorePath     = "data_store/"
 	randStringSize      = 5
 	receiveURL          = "/receive/"
 	receiveCompleteURL  = port + receiveURL
-	pythonAskForJobPath = "src/server/ask_for_job.py"
+	pythonAskForJobPath = "src/nn/ask_for_job.py"
+	pythonTrainPath     = "src/nn/train.py"
 	maxDescriptionSize  = 10000
 )
 
@@ -78,6 +79,8 @@ func listenToJobs(mux *http.ServeMux) {
 			jobQueueMutex.Unlock()
 
 			cmd := exec.Command("python3", pythonAskForJobPath, actualJobID)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
 			if err := cmd.Run(); err != nil {
 				log.Panicf("Failed to execute %v for job %v.", pythonAskForJobPath, actualJobID)
 			}
@@ -143,7 +146,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if _, err = out.Write(body); err != nil {
-			http.Error(w, "Error adding the jpeg bytes to the created file",
+			http.Error(w, "Error adding the jpg bytes to the created file",
 				http.StatusInternalServerError)
 		}
 
@@ -170,6 +173,14 @@ func main() {
 	mux.HandleFunc("/post", PostHandler)
 
 	go listenToJobs(mux)
+
+	// Train the neural network using python script.
+	cmd := exec.Command("python3", pythonTrainPath)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		log.Fatalf("Failed to execute NN training script %v.", pythonTrainPath)
+	}
 
 	log.Printf("listening on port %s", *flagPort)
 	log.Fatal(http.ListenAndServe(":"+*flagPort, mux))

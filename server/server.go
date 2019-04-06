@@ -11,18 +11,91 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
-	"time"
-
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
 )
 
 var (
-	flagPort       = flag.String("port", "2020", "Port to listen on")
-	recImgFileName = "rec_image.jpeg"
+	flagPort            = flag.String("port", "2020", "Port to listen on")
+	imageFormat         = ".jpeg"
+	descriptionFormat   = ".txt"
+	imagesStorePath     = "data_store/"
+	randStringSize      = 20
+	receiveURL          = "/receive/"
+	receiveCompleteURL  = ":2020" + receiveURL
+	pythonAskForJobPath = "server/ask_for_job.py"
+	maxDescriptionSize  = 10000
 )
 
+var jobQueueMutex = &sync.Mutex{}
+var jobQueue []string
 var results []string
+
+func getRandomID(n int) string {
+	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	result := make([]rune, n)
+	for i := range result {
+		result[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(result)
+}
+
+func printPredictionResult(mux *http.ServeMux, jobID string, output []byte) {
+
+	localHandleFunction := func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("in local function")
+		jsonBody, err := json.Marshal(strings.TrimSpace(string(output)))
+		if err != nil {
+			http.Error(w, "Error converting results to json",
+				http.StatusInternalServerError)
+		}
+		w.Write(jsonBody)
+	}
+
+	mux.HandleFunc(receiveURL+jobID, localHandleFunction)
+}
+
+func listenToJobs(mux *http.ServeMux) {
+	for true {
+		time.Sleep(2 * time.Second)
+
+		jobQueueMutex.Lock()
+		actualQueueSize := len(jobQueue)
+		jobQueueMutex.Unlock()
+
+		for i := 0; i < actualQueueSize; i++ {
+			jobQueueMutex.Lock()
+			actualJobID := jobQueue[0]
+			jobQueue = jobQueue[1:]
+			jobQueueMutex.Unlock()
+
+			cmd := exec.Command("python3", pythonAskForJobPath, actualJobID)
+			if err := cmd.Run(); err != nil {
+				log.Panicf("Failed to execute %v for job %v.", pythonAskForJobPath, actualJobID)
+			}
+
+			f, err := os.Open(filepath.Join(imagesStorePath, actualJobID+descriptionFormat))
+			if err != nil {
+				log.Panicf("No file created after execution of %v for job %v.", pythonAskForJobPath, actualJobID)
+			}
+			output := make([]byte, maxDescriptionSize)
+			sizeOutput, err := f.Read(output)
+			if err != nil {
+				log.Panicf("Failed to read the description file created after execution of %v for job %v.", pythonAskForJobPath, actualJobID)
+			}
+			// We need just the first sizeOutput bytes.
+			output = output[:sizeOutput]
+
+			go printPredictionResult(mux, actualJobID, output)
+		}
+	}
+}
 
 // GetHandler handles the index route
 func GetHandler(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +120,12 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		results = append(results, string(body))
 
-		out, err := os.Create(recImgFileName)
+		randID := getRandomID(randStringSize)
+		recImgPath := filepath.Join(imagesStorePath, randID+imageFormat)
+
+		fmt.Println(recImgPath)
+
+		out, err := os.Create(recImgPath)
 		if err != nil {
 			http.Error(w, "Error creating the empty image file",
 				http.StatusInternalServerError)
@@ -58,7 +136,11 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 				http.StatusInternalServerError)
 		}
 
-		fmt.Fprint(w, "POST done")
+		jobQueueMutex.Lock()
+		jobQueue = append(jobQueue, randID)
+		jobQueueMutex.Unlock()
+
+		fmt.Fprintf(w, "POST done. Please wait for the result at: %s", receiveCompleteURL+randID)
 	} else {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 	}
@@ -75,6 +157,8 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", GetHandler)
 	mux.HandleFunc("/post", PostHandler)
+
+	go listenToJobs(mux)
 
 	log.Printf("listening on port %s", *flagPort)
 	log.Fatal(http.ListenAndServe(":"+*flagPort, mux))

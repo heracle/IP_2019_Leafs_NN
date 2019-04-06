@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	port                = "23"
+	port                = "2020"
 	flagPort            = flag.String("port", port, "Port to listen on")
 	imageFormat         = ".jpeg"
 	descriptionFormat   = ".txt"
@@ -31,7 +31,7 @@ var (
 	randStringSize      = 20
 	receiveURL          = "/receive/"
 	receiveCompleteURL  = port + receiveURL
-	pythonAskForJobPath = "server/ask_for_job.py"
+	pythonAskForJobPath = "src/server/ask_for_job.py"
 	maxDescriptionSize  = 10000
 )
 
@@ -117,10 +117,10 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		http.Error(w, "Error reading actual Ip",
-				http.StatusInternalServerError)
+			http.StatusInternalServerError)
 	}
 	userIP := net.ParseIP(ip)
-	fmt.Println("my ip is " + userIP.String() )
+	fmt.Println("my ip is " + userIP.String())
 
 	if r.Method == "POST" {
 		fmt.Println("also a POST method")

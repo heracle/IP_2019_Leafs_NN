@@ -198,13 +198,13 @@ func main() {
 
 	go listenToJobs(mux)
 
-	// Train the neural network using python script.
-	// cmd := exec.Command("python3", pythonTrainPath)
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
-	// if err := cmd.Run(); err != nil {
-	// 	log.Fatalf("Failed to execute NN training script %v.", pythonTrainPath)
-	// }
+	Train the neural network using python script.
+	cmd := exec.Command("python3", pythonTrainPath)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		log.Fatalf("Failed to execute NN training script %v.", pythonTrainPath)
+	}
 
 	log.Printf("listening on port %s", port)
 	log.Fatal(http.ListenAndServe(":"+port, mux))

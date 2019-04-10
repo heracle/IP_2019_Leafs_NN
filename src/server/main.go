@@ -26,13 +26,13 @@ import (
 
 var (
 	// port                = "2020"
-	flagPort            = flag.String("port", port, "Port to listen on")
-	imageFormat         = ".jpg"
-	descriptionFormat   = ".txt"
-	imagesStorePath     = "data_store/"
-	randStringSize      = 5
-	receiveURL          = "/receive/"
-	receiveCompleteURL  = port + receiveURL
+	flagPort          = flag.String("port", port, "Port to listen on")
+	imageFormat       = ".jpg"
+	descriptionFormat = ".txt"
+	imagesStorePath   = "data_store/"
+	randStringSize    = 5
+	receiveURL        = "/receive/"
+	// receiveCompleteURL  = port + receiveURL
 	pythonAskForJobPath = "src/nn/ask_for_job.py"
 	pythonTrainPath     = "src/nn/train.py"
 	maxDescriptionSize  = 10000
@@ -173,7 +173,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		jobQueue = append(jobQueue, randID)
 		jobQueueMutex.Unlock()
 
-		fmt.Fprintf(w, "POST done. Please wait for the result at: %s", receiveCompleteURL+randID)
+		fmt.Fprintf(w, "POST done. Please wait for the result at: %s", randID)
 	} else {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 	}

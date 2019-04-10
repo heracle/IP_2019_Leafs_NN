@@ -147,7 +147,11 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 				http.StatusInternalServerError)
 		}
 
-		body, _ := base64.StdEncoding.DecodeString(bodyObj.Photo)
+		body, err := base64.StdEncoding.DecodeString(bodyObj.Photo)
+		if err != nil {
+			http.Error(w, "The JSON object does not contain only a photo field",
+				http.StatusInternalServerError)
+		}
 
 		_ = ioutil.WriteFile("last_post.txt", body, 0644)
 
@@ -173,7 +177,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		jobQueue = append(jobQueue, randID)
 		jobQueueMutex.Unlock()
 
-		fmt.Fprintf(w, "POST done. Please wait for the result at: %s", randID)
+		fmt.Fprintf(w, "POST done. Please wait for the result at: %s\n", randID)
 	} else {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 	}

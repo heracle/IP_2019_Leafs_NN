@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
-	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -123,13 +122,13 @@ type jsonObj struct {
 func PostHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("here in POST function")
 
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		http.Error(w, "Error reading actual Ip",
-			http.StatusInternalServerError)
-	}
-	userIP := net.ParseIP(ip)
-	fmt.Println("my ip is " + userIP.String())
+	// ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	// if err != nil {
+	// 	http.Error(w, "Error reading actual Ip",
+	// 		http.StatusInternalServerError)
+	// }
+	// userIP := net.ParseIP(ip)
+	// fmt.Println("my ip is " + userIP.String())
 
 	if r.Method == "POST" {
 		fmt.Println("also a POST method")
@@ -138,7 +137,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Error reading request body",
 				http.StatusInternalServerError)
 		}
-		results = append(results, string(bodyP))
+		// results = append(results, string(bodyP))
 
 		var bodyObj jsonObj
 		err = json.Unmarshal(bodyP, &bodyObj)
@@ -153,7 +152,11 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 				http.StatusInternalServerError)
 		}
 
-		_ = ioutil.WriteFile("last_post.txt", body, 0644)
+		err = ioutil.WriteFile("last_post.jpg", body, 0644)
+		if err != nil {
+			http.Error(w, "Internal error",
+				http.StatusInternalServerError)
+		}
 
 		fmt.Printf("%s\n", body)
 
@@ -198,7 +201,7 @@ func main() {
 
 	go listenToJobs(mux)
 
-	Train the neural network using python script.
+	// Train the neural network using python script.
 	cmd := exec.Command("python3", pythonTrainPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

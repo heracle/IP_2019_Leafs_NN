@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	port                = "2020"
+	// port                = "2020"
 	flagPort            = flag.String("port", port, "Port to listen on")
 	imageFormat         = ".jpg"
 	descriptionFormat   = ".txt"
@@ -185,6 +185,7 @@ func init() {
 }
 
 func main() {
+	port = os.Getenv("PORT")
 	results = append(results, time.Now().Format(time.RFC3339))
 
 	mux := http.NewServeMux()
@@ -201,6 +202,6 @@ func main() {
 	// 	log.Fatalf("Failed to execute NN training script %v.", pythonTrainPath)
 	// }
 
-	log.Printf("listening on port %s", *flagPort)
-	log.Fatal(http.ListenAndServe(":"+*flagPort, mux))
+	log.Printf("listening on port %s", port)
+	log.Fatal(http.ListenAndServe(":"+port, mux))
 }

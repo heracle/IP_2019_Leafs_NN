@@ -20,6 +20,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"encoding/base64"
 )
 
 var (
@@ -113,6 +115,10 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBody)
 }
 
+type jsonObj struct {
+	Photo   string      `json:"photo"`
+}
+
 // PostHandler converts post request body to string
 func PostHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("here in POST function")
@@ -127,12 +133,25 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "POST" {
 		fmt.Println("also a POST method")
-		body, err := ioutil.ReadAll(r.Body)
+		bodyP, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "Error reading request body",
 				http.StatusInternalServerError)
 		}
-		results = append(results, string(body))
+		results = append(results, string(bodyP))
+
+		var bodyObj jsonObj
+		err = json.Unmarshal(bodyP, &bodyObj)
+		if err != nil {
+			http.Error(w, "Error while unmarshal body",
+				http.StatusInternalServerError)
+		}
+
+		body, _ := base64.StdEncoding.DecodeString(bodyObj.Photo)
+
+		_ = ioutil.WriteFile("last_post.txt", body, 0644)
+
+		fmt.Printf("%s\n", body)
 
 		randID := getRandomID(randStringSize)
 		recImgPath := filepath.Join(imagesStorePath, randID+imageFormat)
@@ -175,12 +194,12 @@ func main() {
 	go listenToJobs(mux)
 
 	// Train the neural network using python script.
-	cmd := exec.Command("python3", pythonTrainPath)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		log.Fatalf("Failed to execute NN training script %v.", pythonTrainPath)
-	}
+	// cmd := exec.Command("python3", pythonTrainPath)
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
+	// if err := cmd.Run(); err != nil {
+	// 	log.Fatalf("Failed to execute NN training script %v.", pythonTrainPath)
+	// }
 
 	log.Printf("listening on port %s", *flagPort)
 	log.Fatal(http.ListenAndServe(":"+*flagPort, mux))

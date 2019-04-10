@@ -14,6 +14,7 @@ from sklearn.decomposition import PCA
 import cv2 # pip3 install opencv-python
 
 # ### Testing with mobile captured leaves which are not classified
+
 def bg_sub(filename):
     test_img_path = filename
     main_img = cv2.imread(test_img_path)

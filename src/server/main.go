@@ -158,7 +158,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 				http.StatusInternalServerError)
 		}
 
-		fmt.Printf("%s\n", body)
+		// fmt.Printf("%s\n", body)
 
 		randID := getRandomID(randStringSize)
 		recImgPath := filepath.Join(imagesStorePath, randID+imageFormat)
@@ -176,11 +176,33 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 				http.StatusInternalServerError)
 		}
 
-		jobQueueMutex.Lock()
-		jobQueue = append(jobQueue, randID)
-		jobQueueMutex.Unlock()
+		// jobQueueMutex.Lock()
+		// jobQueue = append(jobQueue, randID)
+		// jobQueueMutex.Unlock()
 
-		fmt.Fprintf(w, "POST done. Please wait for the result at: %s\n", randID)
+		// fmt.Fprintf(w, "POST done. Please wait for the result at: %s\n", randID)
+
+		cmd := exec.Command("python3", pythonAskForJobPath, randID)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			log.Panicf("Failed to execute %v for job %v.", pythonAskForJobPath, randID)
+		}
+
+		f, err := os.Open(filepath.Join(imagesStorePath, randID+descriptionFormat))
+		if err != nil {
+			log.Panicf("No file created after execution of %v for job %v.", pythonAskForJobPath, randID)
+		}
+		output := make([]byte, maxDescriptionSize)
+		sizeOutput, err := f.Read(output)
+		if err != nil {
+			log.Panicf("Failed to read the description file created after execution of %v for job %v.", pythonAskForJobPath, randID)
+		}
+		// We need just the first sizeOutput bytes.
+		output = output[:sizeOutput]
+
+		fmt.Fprintf(w, "POST done. The result is:\n%s\n", string(output))
+
 	} else {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 	}
@@ -199,7 +221,7 @@ func main() {
 	mux.HandleFunc("/", GetHandler)
 	mux.HandleFunc("/post", PostHandler)
 
-	go listenToJobs(mux)
+	// go listenToJobs(mux)
 
 	// Train the neural network using python script.
 	// cmd := exec.Command("python3", pythonTrainPath)
@@ -210,5 +232,5 @@ func main() {
 	// }
 
 	log.Printf("listening on port %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, mux))	
+	log.Fatal(http.ListenAndServe(":"+port, mux))
 }

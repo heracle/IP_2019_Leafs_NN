@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	port                = "100"
+	port                = "2020"
 	flagPort            = flag.String("port", port, "Port to listen on")
 	imageFormat         = ".jpg"
 	descriptionFormat   = ".txt"
@@ -116,7 +116,7 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type jsonObj struct {
-	Photo   string      `json:"photo"`
+	Photo string `json:"photo"`
 }
 
 // PostHandler converts post request body to string

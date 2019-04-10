@@ -26,7 +26,7 @@ import (
 
 var (
 	// port                = "2020"
-	flagPort          = flag.String("port", port, "Port to listen on")
+	// flagPort          = flag.String("port", port, "Port to listen on")
 	imageFormat       = ".jpg"
 	descriptionFormat = ".txt"
 	imagesStorePath   = "data_store/"
@@ -185,7 +185,7 @@ func init() {
 }
 
 func main() {
-	port = os.Getenv("PORT")
+	port := os.Getenv("PORT")
 	results = append(results, time.Now().Format(time.RFC3339))
 
 	mux := http.NewServeMux()

@@ -11,7 +11,6 @@ from sklearn import svm
 from sklearn import metrics
 from sklearn.model_selection import GridSearchCV
 from sklearn.decomposition import PCA
-import cv2 # pip3 install opencv-python
 
 # ### Reading the dataset
 dataset = pd.read_csv("train_data/Flavia_features_downloaded.csv")

@@ -215,6 +215,14 @@ func init() {
 
 func main() {
 	port := os.Getenv("PORT")
+
+	os.RemoveAll(imagesStorePath)
+	absPath, err := filepath.Abs(imagesStorePath)
+	if err != nil {
+		log.Fatalf("Failed to get absolute path for image store path %v", imagesStorePath)
+	}
+	os.MkdirAll(absPath, os.ModePerm)
+
 	results = append(results, time.Now().Format(time.RFC3339))
 
 	mux := http.NewServeMux()

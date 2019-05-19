@@ -172,9 +172,47 @@ def main():
     except Exception as e:
         finish('-1', str(e) + " error predicting")
     
-    common_names = ['pubescent bamboo','Chinese horse chestnut','Anhui Barberry',                 'Chinese redbud','true indigo','Japanese maple','Nanmu',' castor aralia',                 'Chinese cinnamon','goldenrain tree','Big-fruited Holly','Japanese cheesewood',                 'wintersweet','camphortree','Japan Arrowwood','sweet osmanthus','deodar','ginkgo, maidenhair tree',                 'Crape myrtle, Crepe myrtle','oleander','yew plum pine','Japanese Flowering Cherry','Glossy Privet',                'Chinese Toon','peach','Ford Woodlotus','trident maple','Beales barberry','southern magnolia',                'Canadian poplar','Chinese tulip tree','tangerine'
+    common_names = ['pubescent bamboo','Chinese horse chestnut','Anhui Barberry',
+    'Chinese redbud','true indigo','Japanese maple','Nanmu',' castor aralia',
+    'Chinese cinnamon','goldenrain tree','Big-fruited Holly','Japanese cheesewood',
+    'wintersweet','camphortree','Japan Arrowwood','sweet osmanthus','deodar','ginkgo, maidenhair tree',
+    'Crape myrtle, Crepe myrtle','oleander','yew plum pine','Japanese Flowering Cherry','Glossy Privet',
+    'Chinese Toon','peach','Ford Woodlotus','trident maple','Beales barberry','southern magnolia',
+    'Canadian poplar','Chinese tulip tree','tangerine'
                 ]
-    finish(common_names[y_pred_mobile[0]] + "\n", 'OK')
+    # common_names = ['bambus',
+    #                 'castan',
+    #                 'Dracila',                 
+    #                 'Fag',
+    #                 'Flori de gladita',
+    #                 'Smochin',
+    #                 'Nanmu',
+    #                 ' castor aralia',                 
+    #                 'Chinese cinnamon',
+    #                 'goldenrain tree',
+    #                 'Big-fruited Holly',
+    #                 'Japanese cheesewood',                 
+    #                 'wintersweet',
+    #                 'camphortree',
+    #                 'Japan Arrowwood',
+    #                 'sweet osmanthus',
+    #                 'deodar',
+    #                 'ginkgo, maidenhair tree',                 
+    #                 'Crape myrtle, Crepe myrtle',
+    #                 'oleander',
+    #                 'yew plum pine',
+    #                 'Japanese Flowering Cherry',
+    #                 'Glossy Privet',                
+    #                 'Chinese Toon','peach',
+    #                 'Ford Woodlotus',
+    #                 'trident maple',
+    #                 'Beales barberry',
+    #                 'southern magnolia',                
+    #                 'Canadian poplar',
+    #                 'Chinese tulip tree',
+    #                 'tangerine'
+    #             ]
+    finish(str(y_pred_mobile[0]) + " " + common_names[y_pred_mobile[0]] + "\n", 'OK')
 
 if __name__ == '__main__':
     main()

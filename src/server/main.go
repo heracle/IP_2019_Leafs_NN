@@ -200,9 +200,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		// We need just the first sizeOutput bytes.
 		output = output[:sizeOutput]
-
 		fmt.Fprintf(w, "POST done. The result is:\n%s\n", string(output))
-
 	} else {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 	}

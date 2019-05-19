@@ -12,8 +12,8 @@ Details:
   Wikipedia: https://en.wikipedia.org/wiki/Phyllostachys_edulis
 `
 
-// Note: YAML fields must be public in order for unmarshal to correctly populate the datamlObja.
-type yamlClass struct {
+// YamlClass denotes the format of the returned message. YAML fields must be public in order for unmarshal to correctly populate the datamlObja.
+type YamlClass struct {
 	ID string
 	Name string
 	Details struct {
@@ -35,7 +35,7 @@ var wikiLinks = []string {
 
 // GetInfoForClass returns a yaml with details about the plant with "classID".
 func GetInfoForClass(classID int) ([]byte, error){
-	yamlObj := new(yamlClass)
+	yamlObj := new(YamlClass)
 	yamlObj.ID = string(classID)
 	yamlObj.Name = commonNames[classID]
 	yamlObj.Details.Wikipedia = wikiLinks[classID]

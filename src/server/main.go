@@ -23,11 +23,11 @@ import (
 	"encoding/base64"
 	"lib"
 
-	"github.com/pkg/errors"
+    "github.com/pkg/errors"
+    
 )
 
 var (
-	// port                = "2020"
 	// flagPort          = flag.String("port", port, "Port to listen on")
 	imageFormat       = ".jpg"
 	descriptionFormat = ".txt"
@@ -96,6 +96,43 @@ func executeNNQuery(randID string) (int, error) {
 	return classID, nil
 }
 
+func evaluateReceivedBody(bodyP []byte) ([]byte, error) {
+	var bodyObj jsonClass
+	if err := json.Unmarshal(bodyP, &bodyObj); err != nil {
+		return nil, errors.Wrapf(err, "Error while apply unmarshal on the received body to get the JSON")
+	}
+
+	body, err := base64.StdEncoding.DecodeString(bodyObj.Photo)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed the Base64 decoding of the JSON object")
+	}
+
+	err = ioutil.WriteFile("last_post.jpg", body, 0644)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Internal error while saving the image on local disk")
+	}
+
+	randID := getRandomID(randStringSize)
+	recImgPath := filepath.Join(imagesStorePath, randID+imageFormat)
+
+	err = ioutil.WriteFile(recImgPath, body, 0644)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Internal error while saving the image on local disk")
+	}
+
+	classID, err := executeNNQuery(randID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get classID after NN execution")
+	}
+
+	ret, err := infogen.GetInfoForClass(classID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get YAML bytes for classID %v", classID)
+	}
+
+	return ret, nil
+}
+
 // PostHandler converts post request body to string
 func PostHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Received a request from %v\n", r.RemoteAddr)
@@ -111,56 +148,22 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 			http.StatusInternalServerError)
 	}
 
-	var bodyObj jsonClass
-	err = json.Unmarshal(bodyP, &bodyObj)
+	message, err := evaluateReceivedBody(bodyP)
 	if err != nil {
-		http.Error(w, "Error while apply unmarshal on the received body to get the JSON",
+		http.Error(w, "Error evaluating the received body",
 			http.StatusInternalServerError)
+		fmt.Printf("Error while evaluating body: %v", err)
 	}
-
-	body, err := base64.StdEncoding.DecodeString(bodyObj.Photo)
-	if err != nil {
-		http.Error(w, "The JSON object does not contain only the binary photo field",
-			http.StatusInternalServerError)
-	}
-
-	err = ioutil.WriteFile("last_post.jpg", body, 0644)
-	if err != nil {
-		http.Error(w, "Internal error while saving the image on local disk",
-			http.StatusInternalServerError)
-	}
-
-	randID := getRandomID(randStringSize)
-	recImgPath := filepath.Join(imagesStorePath, randID+imageFormat)
-
-	err = ioutil.WriteFile(recImgPath, body, 0644)
-	if err != nil {
-		http.Error(w, "Internal error while saving the image on local disk",
-			http.StatusInternalServerError)
-	}
-
-	classID, err := executeNNQuery(randID)
-	if err != nil {
-		log.Panicf("failed to get classID after NN execution")
-	}
-	fmt.Fprintf(w, "POST done. The result is:\n%v\n", classID)
-
-	ret, err := infogen.GetInfoForClass(classID)
-	if err != nil {
-		log.Panicf("failed to get YAML bytes for classID %v", classID)
-	}
-
-	fmt.Fprintf(w, "YAML %s\n", string(ret))
+	fmt.Fprintf(w, "YAML %s\n", string(message))
 }
+
 
 func init() {
 	log.SetFlags(log.Lmicroseconds | log.Lshortfile)
 	flag.Parse()
 }
 
-func main() {
-	port := os.Getenv("PORT")
-
+func startServer(port string, needTrain bool) {
 	os.RemoveAll(imagesStorePath)
 	absPath, err := filepath.Abs(imagesStorePath)
 	if err != nil {
@@ -174,16 +177,34 @@ func main() {
 	mux.HandleFunc("/", GetHandler)
 	mux.HandleFunc("/post", PostHandler)
 
-	// go listenToJobs(mux)
+    if needTrain {
+		// Train the neural network using python script.
+		fmt.Printf("Starting to train the Neural Network...\n")
+		cmd := exec.Command("python3", pythonTrainPath)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			log.Fatalf("Failed to execute NN training script %v.", pythonTrainPath)
+		}
+		fmt.Printf("Training the Neural Network finished!\n")
+    }
 
-	// Train the neural network using python script.
-	// cmd := exec.Command("python3", pythonTrainPath)
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
-	// if err := cmd.Run(); err != nil {
-	// 	log.Fatalf("Failed to execute NN training script %v.", pythonTrainPath)
-	// }
+    if port != "" {
+        log.Printf("listening on port %s", port)
+	    log.Fatal(http.ListenAndServe(":"+port, mux))
+    }
+}
 
-	log.Printf("listening on port %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, mux))
+func main() {
+    port := ""
+	if os.Getenv("PORT") != "" {
+		port = os.Getenv("PORT")
+	}
+	needTrain := false
+	if os.Getenv("TRAIN") == "true" {
+		needTrain = true
+	}
+	
+	startServer(port, needTrain)
+
 }

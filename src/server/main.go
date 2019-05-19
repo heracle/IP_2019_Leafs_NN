@@ -16,11 +16,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
+	"strconv"
 	"sync"
 	"time"
 
 	"encoding/base64"
+	"lib"
+
+	"github.com/pkg/errors"
 )
 
 var (
@@ -28,12 +31,12 @@ var (
 	// flagPort          = flag.String("port", port, "Port to listen on")
 	imageFormat       = ".jpg"
 	descriptionFormat = ".txt"
-	imagesStorePath   = "data_store/"
+	imagesStorePath   = filepath.Join(os.Getenv("GOPATH"), "data_store")
 	randStringSize    = 5
 	receiveURL        = "/receive/"
 	// receiveCompleteURL  = port + receiveURL
-	pythonAskForJobPath = "src/nn/ask_for_job.py"
-	pythonTrainPath     = "src/nn/train.py"
+	pythonAskForJobPath = filepath.Join(os.Getenv("GOPATH"), "src", "nn", "ask_for_job.py")
+	pythonTrainPath     = filepath.Join(os.Getenv("GOPATH"), "src", "nn", "train.py")
 	maxDescriptionSize  = 10000
 )
 
@@ -50,59 +53,6 @@ func getRandomID(n int) string {
 	return string(result)
 }
 
-func printPredictionResult(mux *http.ServeMux, jobID string, output []byte) {
-
-	localHandleFunction := func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("in local function")
-		jsonBody, err := json.Marshal(strings.TrimSpace(string(output)))
-		if err != nil {
-			http.Error(w, "Error converting results to json",
-				http.StatusInternalServerError)
-		}
-		w.Write(jsonBody)
-	}
-
-	mux.HandleFunc(receiveURL+jobID, localHandleFunction)
-}
-
-func listenToJobs(mux *http.ServeMux) {
-	for true {
-		time.Sleep(2 * time.Second)
-
-		jobQueueMutex.Lock()
-		actualQueueSize := len(jobQueue)
-		jobQueueMutex.Unlock()
-
-		for i := 0; i < actualQueueSize; i++ {
-			jobQueueMutex.Lock()
-			actualJobID := jobQueue[0]
-			jobQueue = jobQueue[1:]
-			jobQueueMutex.Unlock()
-
-			cmd := exec.Command("python3", pythonAskForJobPath, actualJobID)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			if err := cmd.Run(); err != nil {
-				log.Panicf("Failed to execute %v for job %v.", pythonAskForJobPath, actualJobID)
-			}
-
-			f, err := os.Open(filepath.Join(imagesStorePath, actualJobID+descriptionFormat))
-			if err != nil {
-				log.Panicf("No file created after execution of %v for job %v.", pythonAskForJobPath, actualJobID)
-			}
-			output := make([]byte, maxDescriptionSize)
-			sizeOutput, err := f.Read(output)
-			if err != nil {
-				log.Panicf("Failed to read the description file created after execution of %v for job %v.", pythonAskForJobPath, actualJobID)
-			}
-			// We need just the first sizeOutput bytes.
-			output = output[:sizeOutput]
-
-			go printPredictionResult(mux, actualJobID, output)
-		}
-	}
-}
-
 // GetHandler handles the index route
 func GetHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("in get function")
@@ -114,96 +64,93 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBody)
 }
 
-type jsonObj struct {
+type jsonClass struct {
 	Photo string `json:"photo"`
+}
+
+func executeNNQuery(randID string) (int, error) {
+	cmd := exec.Command("python3", pythonAskForJobPath, randID)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return 0, errors.Wrapf(err, "Failed to execute %v for job %v.", pythonAskForJobPath, randID)
+	}
+
+	f, err := os.Open(filepath.Join(imagesStorePath, randID+descriptionFormat))
+	if err != nil {
+		return 0, errors.Wrapf(err, "Failed to open the file created after execution of %v for job %v.", pythonAskForJobPath, randID)
+	}
+	output := make([]byte, maxDescriptionSize)
+	sizeOutput, err := f.Read(output)
+	if err != nil {
+		return 0, errors.Wrapf(err, "Failed to read the description file created after execution of %v for job %v.", pythonAskForJobPath, randID)
+	}
+	// We need just the first sizeOutput bytes.
+	output = output[:sizeOutput]
+
+	classID, err := strconv.Atoi(string(output))
+	if err != nil {
+		return 0, errors.Wrapf(err, "failed to get int from byte-string '%s'", output)
+	}
+
+	return classID, nil
 }
 
 // PostHandler converts post request body to string
 func PostHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("here in POST function")
+	fmt.Printf("Received a request from %v\n", r.RemoteAddr)
 
-	// ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	// if err != nil {
-	// 	http.Error(w, "Error reading actual Ip",
-	// 		http.StatusInternalServerError)
-	// }
-	// userIP := net.ParseIP(ip)
-	// fmt.Println("my ip is " + userIP.String())
-
-	if r.Method == "POST" {
-		fmt.Println("also a POST method")
-		bodyP, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, "Error reading request body",
-				http.StatusInternalServerError)
-		}
-		// results = append(results, string(bodyP))
-
-		var bodyObj jsonObj
-		err = json.Unmarshal(bodyP, &bodyObj)
-		if err != nil {
-			http.Error(w, "Error while unmarshal body",
-				http.StatusInternalServerError)
-		}
-
-		body, err := base64.StdEncoding.DecodeString(bodyObj.Photo)
-		if err != nil {
-			http.Error(w, "The JSON object does not contain only a photo field",
-				http.StatusInternalServerError)
-		}
-
-		err = ioutil.WriteFile("last_post.jpg", body, 0644)
-		if err != nil {
-			http.Error(w, "Internal error",
-				http.StatusInternalServerError)
-		}
-
-		// fmt.Printf("%s\n", body)
-
-		randID := getRandomID(randStringSize)
-		recImgPath := filepath.Join(imagesStorePath, randID+imageFormat)
-
-		fmt.Println(recImgPath)
-
-		out, err := os.Create(recImgPath)
-		if err != nil {
-			http.Error(w, "Error creating the empty image file",
-				http.StatusInternalServerError)
-		}
-
-		if _, err = out.Write(body); err != nil {
-			http.Error(w, "Error adding the jpg bytes to the created file",
-				http.StatusInternalServerError)
-		}
-
-		// jobQueueMutex.Lock()
-		// jobQueue = append(jobQueue, randID)
-		// jobQueueMutex.Unlock()
-
-		// fmt.Fprintf(w, "POST done. Please wait for the result at: %s\n", randID)
-
-		cmd := exec.Command("python3", pythonAskForJobPath, randID)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			log.Panicf("Failed to execute %v for job %v.", pythonAskForJobPath, randID)
-		}
-
-		f, err := os.Open(filepath.Join(imagesStorePath, randID+descriptionFormat))
-		if err != nil {
-			log.Panicf("No file created after execution of %v for job %v.", pythonAskForJobPath, randID)
-		}
-		output := make([]byte, maxDescriptionSize)
-		sizeOutput, err := f.Read(output)
-		if err != nil {
-			log.Panicf("Failed to read the description file created after execution of %v for job %v.", pythonAskForJobPath, randID)
-		}
-		// We need just the first sizeOutput bytes.
-		output = output[:sizeOutput]
-		fmt.Fprintf(w, "POST done. The result is:\n%s\n", string(output))
-	} else {
+	if r.Method != "POST" {
+		fmt.Println("\t Error: request is not of type POST")
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 	}
+
+	bodyP, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request body",
+			http.StatusInternalServerError)
+	}
+
+	var bodyObj jsonClass
+	err = json.Unmarshal(bodyP, &bodyObj)
+	if err != nil {
+		http.Error(w, "Error while apply unmarshal on the received body to get the JSON",
+			http.StatusInternalServerError)
+	}
+
+	body, err := base64.StdEncoding.DecodeString(bodyObj.Photo)
+	if err != nil {
+		http.Error(w, "The JSON object does not contain only the binary photo field",
+			http.StatusInternalServerError)
+	}
+
+	err = ioutil.WriteFile("last_post.jpg", body, 0644)
+	if err != nil {
+		http.Error(w, "Internal error while saving the image on local disk",
+			http.StatusInternalServerError)
+	}
+
+	randID := getRandomID(randStringSize)
+	recImgPath := filepath.Join(imagesStorePath, randID+imageFormat)
+
+	err = ioutil.WriteFile(recImgPath, body, 0644)
+	if err != nil {
+		http.Error(w, "Internal error while saving the image on local disk",
+			http.StatusInternalServerError)
+	}
+
+	classID, err := executeNNQuery(randID)
+	if err != nil {
+		log.Panicf("failed to get classID after NN execution")
+	}
+	fmt.Fprintf(w, "POST done. The result is:\n%v\n", classID)
+
+	ret, err := infogen.GetInfoForClass(classID)
+	if err != nil {
+		log.Panicf("failed to get YAML bytes for classID %v", classID)
+	}
+
+	fmt.Fprintf(w, "YAML %s\n", string(ret))
 }
 
 func init() {

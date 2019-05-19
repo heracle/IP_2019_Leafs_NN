@@ -115,11 +115,13 @@ def feature_extract(img):
 def get_svm():
     import pickle
 
-    pkl_filename = "prediction_data/pickle_model.pkl"
+    
+
+    pkl_filename = os.path.join(os.environ.get('GOPATH'), 'prediction_data', 'pickle_model.pkl') 
     with open(pkl_filename, 'rb') as file:
         svm_clf = pickle.load(file)
     
-    pkl_filename = "prediction_data/my_scaler.pkl"
+    pkl_filename = os.path.join(os.environ.get('GOPATH'), 'prediction_data', 'my_scaler.pkl')
     with open(pkl_filename, 'rb') as file:
         loaded_scaler = pickle.load(file)
 
@@ -140,8 +142,8 @@ def main():
     args = parser.parse_args()
 
     global output_filename
-    output_filename = 'data_store/' + args.jobid + '.txt'
-    image_filename = 'data_store/' + args.jobid + '.jpg'
+    output_filename = os.path.join(os.environ.get('GOPATH'), 'data_store', args.jobid + '.txt') 
+    image_filename = os.path.join(os.environ.get('GOPATH'), 'data_store', args.jobid + '.jpg')
 
     bg_rem_img = None
     try:
@@ -212,7 +214,7 @@ def main():
     #                 'Chinese tulip tree',
     #                 'tangerine'
     #             ]
-    finish(str(y_pred_mobile[0]) + " " + common_names[y_pred_mobile[0]] + "\n", 'OK')
+    finish(str(y_pred_mobile[0]), 'OK')
 
 if __name__ == '__main__':
     main()

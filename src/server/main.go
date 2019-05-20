@@ -21,10 +21,9 @@ import (
 	"time"
 
 	"encoding/base64"
-	"lib"
+	infogen "lib"
 
-    "github.com/pkg/errors"
-    
+	"github.com/pkg/errors"
 )
 
 var (
@@ -157,7 +156,6 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "YAML %s\n", string(message))
 }
 
-
 func init() {
 	log.SetFlags(log.Lmicroseconds | log.Lshortfile)
 	flag.Parse()
@@ -177,7 +175,7 @@ func startServer(port string, needTrain bool) {
 	mux.HandleFunc("/", GetHandler)
 	mux.HandleFunc("/post", PostHandler)
 
-    if needTrain {
+	if needTrain {
 		// Train the neural network using python script.
 		fmt.Printf("Starting to train the Neural Network...\n")
 		cmd := exec.Command("python3", pythonTrainPath)
@@ -187,16 +185,16 @@ func startServer(port string, needTrain bool) {
 			log.Fatalf("Failed to execute NN training script %v.", pythonTrainPath)
 		}
 		fmt.Printf("Training the Neural Network finished!\n")
-    }
+	}
 
-    if port != "" {
-        log.Printf("listening on port %s", port)
-	    log.Fatal(http.ListenAndServe(":"+port, mux))
-    }
+	if port != "" {
+		log.Printf("listening on port %s", port)
+		log.Fatal(http.ListenAndServe(":"+port, mux))
+	}
 }
 
 func main() {
-    port := ""
+	port := ""
 	if os.Getenv("PORT") != "" {
 		port = os.Getenv("PORT")
 	}
@@ -204,7 +202,7 @@ func main() {
 	if os.Getenv("TRAIN") == "true" {
 		needTrain = true
 	}
-	
+
 	startServer(port, needTrain)
 
 }

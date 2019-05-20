@@ -11,9 +11,12 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 
 	"io/ioutil"
 	"os/exec"
+
+	infogen "lib"
 )
 
 const (
@@ -54,14 +57,14 @@ func getTestImage(classID int) string {
 }
 
 func createFakeImage(fakeName string, classID int) error {
-	source := getTestImage(0)
+	source := getTestImage(classID)
 	destination := filepath.Join(os.Getenv("GOPATH"), "data_store", fakeName+".jpg")
 	_, err := copy(source, destination)
 	return err
 }
 
 func encodeInJSON(classID int) ([]byte, error) {
-	f, err := os.Open(getTestImage(0))
+	f, err := os.Open(getTestImage(classID))
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not open the image file")
 	}
@@ -88,7 +91,7 @@ func encodeInJSON(classID int) ([]byte, error) {
 func TestGenerateOutputFile(t *testing.T) {
 	fakeName := "test"
 
-	if err := createFakeImage(fakeName, 0); err != nil {
+	if err := createFakeImage(fakeName, 12); err != nil {
 		t.Errorf("failed to create fake image: %v", err)
 	}
 
@@ -96,6 +99,32 @@ func TestGenerateOutputFile(t *testing.T) {
 		t.Errorf("failed to execute NN Query for '%v' err: %v", fakeName, err)
 	}
 }
+
+// func TestAllClasses(t *testing.T) {
+// 	totalImgs := 32
+// 	correctAnswer := 0
+// 	fakeName := "test"
+
+// 	for picIdx := 0; picIdx < totalImgs; picIdx ++ {
+// 		if err := createFakeImage(fakeName, picIdx); err != nil {
+// 			t.Errorf("failed to create fake image: %v", err)
+// 		}
+
+// 		prediction, err := executeNNQuery(fakeName)
+// 		if err != nil {
+// 			t.Errorf("failed to execute NN Query for '%v' err: %v", fakeName, err)
+// 		}
+
+// 		if prediction == picIdx {
+// 			correctAnswer ++
+// 		}
+// 	}
+// 	fmt.Printf("correct answer at %d of %d", correctAnswer, totalImgs)
+
+// 	if correctAnswer  < totalImgs * 3 / 4 {
+// 		t.Error("prediction under 75%")
+// 	}
+// }
 
 func TestBodyFormat(t *testing.T) {
 	imgEncoded, err := encodeInJSON(0)
@@ -108,9 +137,23 @@ func TestBodyFormat(t *testing.T) {
 	}
 }
 
+func TestStartStopServer(t *testing.T) {
+	testPort := "2029"
+
+	cmdServer := exec.Command(filepath.Join(os.Getenv("GOPATH"), "bin", "server"))
+	cmdServer.Env = append(os.Environ(),
+		"PORT="+testPort,
+	)
+	cmdServer.Start()
+
+	if err := cmdServer.Process.Kill(); err != nil {
+		t.Errorf("failed to kill process: %v", err)
+	}
+}
+
 func TestEntireServer(t *testing.T) {
 	jsonPath := "temp_json.json"
-	testPort := "2021"
+	testPort := "2029"
 
 	cmdServer := exec.Command(filepath.Join(os.Getenv("GOPATH"), "bin", "server"))
 	cmdServer.Env = append(os.Environ(),
@@ -128,6 +171,8 @@ func TestEntireServer(t *testing.T) {
 	}
 
 	cmdCurl := exec.Command("curl", "--request", "POST", "--data-binary", "@"+jsonPath, "localhost:"+testPort+"/post")
+	// cmdCurl.Stdout = os.Stdout
+	// cmdCurl.Stderr = os.Stderr
 
 	output, err := cmdCurl.Output()
 	if err != nil {
@@ -137,11 +182,10 @@ func TestEntireServer(t *testing.T) {
 	fmt.Printf("output = %v", string(output))
 
 	// We need that the result to be unmarshable.
-
-	// var aux infogen.YamlClass
-	// if err := yaml.Unmarshal(output, aux); err != nil {
-	// 	t.Errorf("the output is not a legit YAML file")
-	// }
+	var retYaml infogen.YamlClass
+	if err := yaml.Unmarshal(output, &retYaml); err != nil {
+		t.Errorf("the output is not a legit YAML file")
+	}
 
 	if err := cmdServer.Process.Kill(); err != nil {
 		t.Errorf("failed to kill process: %v", err)

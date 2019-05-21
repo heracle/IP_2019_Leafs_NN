@@ -117,6 +117,9 @@ func TestGenerateOutputFile(t *testing.T) {
 
 // 		if prediction == picIdx {
 // 			correctAnswer ++
+// 			fmt.Printf("OK %d\n", picIdx)
+// 		} else {
+// 			fmt.Printf("NO %d\n", picIdx)
 // 		}
 // 	}
 // 	fmt.Printf("correct answer at %d of %d", correctAnswer, totalImgs)
@@ -161,7 +164,7 @@ func TestEntireServer(t *testing.T) {
 	)
 	cmdServer.Start()
 
-	imgEncoded, err := encodeInJSON(0)
+	imgEncoded, err := encodeInJSON(21)
 	if err != nil {
 		t.Errorf("could not encode in JSON: %v", err)
 	}
@@ -179,7 +182,7 @@ func TestEntireServer(t *testing.T) {
 		t.Errorf("query to server failed, err: %v", err)
 	}
 
-	fmt.Printf("output = %v", string(output))
+	fmt.Printf("output = \n%v", string(output))
 
 	// We need that the result to be unmarshable.
 	var retYaml infogen.YamlClass

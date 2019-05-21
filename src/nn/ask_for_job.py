@@ -214,7 +214,7 @@ def main():
     #                 'Chinese tulip tree',
     #                 'tangerine'
     #             ]
-    finish(str(y_pred_mobile[0]), 'OK')
+    finish(str(y_pred_mobile[0]), 'All good')
 
 if __name__ == '__main__':
     main()

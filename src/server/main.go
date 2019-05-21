@@ -190,6 +190,8 @@ func startServer(port string, needTrain bool) {
 	if port != "" {
 		log.Printf("listening on port %s", port)
 		log.Fatal(http.ListenAndServe(":"+port, mux))
+	} else {
+		fmt.Printf("Please set a PORT and rerun the cmd. ex: $PORT=2020 bin/server\n")
 	}
 }
 

@@ -1,8 +1,3 @@
-/*
-* Sample API with GET and POST endpoint.
-* POST data is converted to string and saved in internal memory.
-* GET endpoint returns all strings in an array.
- */
 package main
 
 import (
@@ -179,6 +174,10 @@ func startServer(port string, needTrain bool) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", GetHandler)
 	mux.HandleFunc("/post", PostHandler)
+
+	mux.HandleFunc("/authenticate", createTokenEndpoint)
+    mux.HandleFunc("/protected", protectedEndpoint)
+    mux.HandleFunc("/test", validateMiddleware(testEndpoint))
 
 	if needTrain {
 		// Train the neural network using python script.

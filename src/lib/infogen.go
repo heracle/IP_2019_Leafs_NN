@@ -1,8 +1,8 @@
 package infogen
 
 import (
+	"encoding/json"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
 
 	"strconv"
 )
@@ -14,12 +14,12 @@ Details:
   Wikipedia: https://en.wikipedia.org/wiki/Phyllostachys_edulis
 `
 
-// YamlClass denotes the format of the returned message. YAML fields must be public in order for unmarshal to correctly populate the datamlObja.
-type YamlClass struct {
-	ID      	string
-	Common_name 	string
-	Specific_name 	string
-	Details 	struct {
+// QueryInfo denotes the format of the returned message. JSON fields must be public in order for unmarshal to correctly populate the datamlObja.
+type QueryInfo struct {
+	ID            string
+	Common_name   string
+	Specific_name string
+	Details       struct {
 		Wikipedia string
 	}
 }
@@ -36,7 +36,7 @@ var commonNames = []string{"Pubescent bamboo", "Chinese horse chestnut", "Anhui 
 }
 
 var specificNames = []string{"Phyllostachys edulis (Carr.) Houz", "Aesculus chinensis", "Berberis anhweiensis Ahrendt",
-	"Cercis chinensis", "Indigofera tinctoria L.", "Acer Palmatum", "Phoebe nanmu (Oliv.) Gamble", 
+	"Cercis chinensis", "Indigofera tinctoria L.", "Acer Palmatum", "Phoebe nanmu (Oliv.) Gamble",
 	"Kalopanax septemlobus (Thunb. ex A.Murr.) Koidz.", "Cinnamomum japonicum Sieb.", "Koelreuteria paniculata Laxm.",
 	"Ilex macrocarpa Oliv.", "Pittosporum tobira (Thunb.) Ait. f.", "Chimonanthus praecox L.",
 	"Cinnamomum camphora (L.) J. Presl", "Viburnum awabuki K.Koch", "Osmanthus fragrans Lour.",
@@ -46,7 +46,7 @@ var specificNames = []string{"Phyllostachys edulis (Carr.) Houz", "Aesculus chin
 	"Tonna sinensis M. Roem.", "Prunus persica (L.) Batsch", "Manglietia fordiana Oliv.",
 	"Acer buergerianum Miq.", "Mahonia bealei (Fortune) Carr.", "Magnolia grandiflora L.",
 	"Populus ×canadensis Moench", "Liriodendron chinense (Hemsl.) Sarg.", "Citrus reticulata Blanco",
-	}
+}
 
 var wikiLinks = []string{
 	"https://en.wikipedia.org/wiki/Phyllostachys_edulis",
@@ -83,17 +83,17 @@ var wikiLinks = []string{
 	"https://en.wikipedia.org/wiki/Mandarin_orange",
 }
 
-// GetInfoForClass returns a yaml with details about the plant with "classID".
+// GetInfoForClass returns a json with details about the plant with "classID".
 func GetInfoForClass(classID int) ([]byte, error) {
-	yamlObj := new(YamlClass)
-	yamlObj.ID = strconv.Itoa(classID)
-	yamlObj.Common_name = commonNames[classID]
-	yamlObj.Specific_name = specificNames[classID]
-	yamlObj.Details.Wikipedia = wikiLinks[classID]
+	jsonObj := new(QueryInfo)
+	jsonObj.ID = strconv.Itoa(classID)
+	jsonObj.Common_name = commonNames[classID]
+	jsonObj.Specific_name = specificNames[classID]
+	jsonObj.Details.Wikipedia = wikiLinks[classID]
 
-	ret, err := yaml.Marshal(&yamlObj)
+	ret, err := json.Marshal(&jsonObj)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to Marshal the yaml")
+		return nil, errors.Wrapf(err, "failed to Marshal the json")
 	}
 	return ret, nil
 }

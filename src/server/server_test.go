@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
 
 	"io/ioutil"
 	"os/exec"
@@ -155,7 +154,7 @@ func TestStartStopServer(t *testing.T) {
 }
 
 func TestEntireServer(t *testing.T) {
-	jsonPath := "temp_json.json"
+	jsonPath := filepath.Join(os.Getenv("GOPATH"), "data_base", "jsons", "temp_json.json")
 	testPort := "2029"
 
 	cmdServer := exec.Command(filepath.Join(os.Getenv("GOPATH"), "bin", "server"))
@@ -185,9 +184,9 @@ func TestEntireServer(t *testing.T) {
 	fmt.Printf("output = \n%v", string(output))
 
 	// We need that the result to be unmarshable.
-	var retYaml infogen.YamlClass
-	if err := yaml.Unmarshal(output, &retYaml); err != nil {
-		t.Errorf("the output is not a legit YAML file")
+	var retJSON infogen.QueryInfo
+	if err := json.Unmarshal(output, &retJSON); err != nil {
+		t.Errorf("the output is not a legit JSON file")
 	}
 
 	if err := cmdServer.Process.Kill(); err != nil {

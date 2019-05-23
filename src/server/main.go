@@ -153,7 +153,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 			http.StatusInternalServerError)
 		fmt.Printf("Error while evaluating body: %v", err)
 	}
-	fmt.Fprintf(w, "YAML %s\n", string(message))
+	fmt.Fprintf(w, "%s\n", string(message))
 }
 
 func init() {

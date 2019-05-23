@@ -15,7 +15,7 @@ import (
 	"io/ioutil"
 	"os/exec"
 
-	infogen "lib"
+	infogen "server_answer"
 )
 
 const (

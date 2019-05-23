@@ -24,6 +24,7 @@ type Exception struct {
     Message string `json:"message"`
 }
 
+// 	mux.HandleFunc("/authenticate", createTokenEndpoint)
 func createTokenEndpoint(w http.ResponseWriter, req *http.Request) {
     fmt.Printf("here in auth\n")
 
@@ -33,18 +34,30 @@ func createTokenEndpoint(w http.ResponseWriter, req *http.Request) {
 	}
 
     var user User
-    _ = json.NewDecoder(req.Body).Decode(&user)
+    if err := json.NewDecoder(req.Body).Decode(&user); err != nil {
+        fmt.Printf("error while decoding user: %v", err)
+    }
+    
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
         "username": user.Username,
         "password": user.Password,
     })
-    tokenString, error := token.SignedString([]byte("secret"))
-    if error != nil {
-        fmt.Println(error)
+    tokenString, err := token.SignedString([]byte("secret"))
+    if err != nil {
+        fmt.Printf("error while signing token string: %v", err)
     }
+
+    if err := userServerInteraction(
+        user.Username,
+        "Login",
+    ); err != nil {
+        fmt.Printf("error while writing in user log file: %v", err)
+    }
+
     json.NewEncoder(w).Encode(JwtToken{Token: tokenString})
 }
 
+// mux.HandleFunc("/protected", protectedEndpoint)
 func protectedEndpoint(w http.ResponseWriter, req *http.Request) {
     params := req.URL.Query()
     token, _ := jwt.Parse(params["token"][0], func(token *jwt.Token) (interface{}, error) {
@@ -62,6 +75,7 @@ func protectedEndpoint(w http.ResponseWriter, req *http.Request) {
     }
 }
 
+// mux.HandleFunc("/test", validateMiddleware(testEndpoint))
 func validateMiddleware(next http.HandlerFunc) http.HandlerFunc {
     return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
         authorizationHeader := req.Header.Get("authorization")

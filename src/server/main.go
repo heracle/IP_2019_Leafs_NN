@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"encoding/base64"
-	infogen "lib"
+	infogen "server_answer"
 
 	"github.com/pkg/errors"
 )
@@ -47,7 +47,7 @@ func getRandomID(n int) string {
 	return string(result)
 }
 
-// GetHandler handles the index route
+// 	mux.HandleFunc("/", GetHandler)
 func GetHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("in get function")
 	jsonBody, err := json.Marshal(results)
@@ -59,6 +59,7 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type jsonClass struct {
+	Token string `json:"token"`
 	Photo string `json:"photo"`
 }
 
@@ -92,13 +93,19 @@ func executeNNQuery(randID string) (int, error) {
 
 func evaluateReceivedBody(bodyP []byte) ([]byte, error) {
 	var bodyObj jsonClass
+
 	if err := json.Unmarshal(bodyP, &bodyObj); err != nil {
 		return nil, errors.Wrapf(err, "Error while apply unmarshal on the received body to get the JSON")
 	}
 
-	body, err := base64.StdEncoding.DecodeString(bodyObj.Photo)
+	imgBytes, err := base64.StdEncoding.DecodeString(bodyObj.Photo)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed the Base64 decoding of the JSON object")
+	}
+
+	user, err := getUserFromToken(bodyObj.Token)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to find user from token")
 	}
 
 	path := filepath.Join(os.Getenv("GOPATH"), "data_base", "tmp", "last_post.jpg")
@@ -106,7 +113,7 @@ func evaluateReceivedBody(bodyP []byte) ([]byte, error) {
 		return nil, errors.Wrapf(err, "Can not create directory %v", path)
 	}
 
-	err = ioutil.WriteFile(path, body, 0644)
+	err = ioutil.WriteFile(path, imgBytes, 0644)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Internal error while saving the image on local disk")
 	}
@@ -114,7 +121,7 @@ func evaluateReceivedBody(bodyP []byte) ([]byte, error) {
 	randID := getRandomID(randStringSize)
 	recImgPath := filepath.Join(imagesStorePath, randID+imageFormat)
 
-	err = ioutil.WriteFile(recImgPath, body, 0644)
+	err = ioutil.WriteFile(recImgPath, imgBytes, 0644)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Internal error while saving the image on local disk")
 	}
@@ -129,10 +136,15 @@ func evaluateReceivedBody(bodyP []byte) ([]byte, error) {
 		return nil, errors.Wrapf(err, "failed to get YAML bytes for classID %v", classID)
 	}
 
+	// Do not forget the history.
+	if err := userSaveQuery(user, randID, imgBytes, ret); err != nil {
+		return nil, errors.Wrapf(err, "error while saving query in user directory")
+	}
+
 	return ret, nil
 }
 
-// PostHandler converts post request body to string
+// mux.HandleFunc("/post", PostHandler)
 func PostHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Received a request from %v\n", r.RemoteAddr)
 
@@ -176,8 +188,8 @@ func startServer(port string, needTrain bool) {
 	mux.HandleFunc("/post", PostHandler)
 
 	mux.HandleFunc("/authenticate", createTokenEndpoint)
-    mux.HandleFunc("/protected", protectedEndpoint)
-    mux.HandleFunc("/test", validateMiddleware(testEndpoint))
+	mux.HandleFunc("/protected", protectedEndpoint)
+	mux.HandleFunc("/test", validateMiddleware(testEndpoint))
 
 	if needTrain {
 		// Train the neural network using python script.

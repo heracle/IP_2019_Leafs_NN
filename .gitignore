@@ -5,3 +5,4 @@ src/github.com
 src/gopkg.in
 .vscode
 pkg
+data_base/users_data/

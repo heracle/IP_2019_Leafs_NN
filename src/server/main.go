@@ -30,7 +30,7 @@ var (
 	// flagPort          = flag.String("port", port, "Port to listen on")
 	imageFormat       = ".jpg"
 	descriptionFormat = ".txt"
-	imagesStorePath   = filepath.Join(os.Getenv("GOPATH"), "data_store")
+	imagesStorePath   = filepath.Join(os.Getenv("GOPATH"), "data_base", "queries")
 	randStringSize    = 5
 	receiveURL        = "/receive/"
 	// receiveCompleteURL  = port + receiveURL
@@ -106,7 +106,12 @@ func evaluateReceivedBody(bodyP []byte) ([]byte, error) {
 		return nil, errors.Wrapf(err, "Failed the Base64 decoding of the JSON object")
 	}
 
-	err = ioutil.WriteFile("last_post.jpg", body, 0644)
+	path := filepath.Join(os.Getenv("GOPATH"), "data_base", "tmp", "last_post.jpg")
+	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
+		return nil, errors.Wrapf(err, "Can not create directory %v", path)
+	}
+
+	err = ioutil.WriteFile(path, body, 0644)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Internal error while saving the image on local disk")
 	}

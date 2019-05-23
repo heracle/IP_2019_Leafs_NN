@@ -13,7 +13,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.decomposition import PCA
 
 # ### Reading the dataset
-dataset = pd.read_csv("train_data/Flavia_features_downloaded.csv")
+dataset = pd.read_csv("data_base/train_data/Flavia_features_downloaded.csv")
 
 # print(dataset.head(5))
 # print(type(dataset))
@@ -24,7 +24,7 @@ dataset = pd.read_csv("train_data/Flavia_features_downloaded.csv")
 
 img_files = []
 for i in range(1001, 3622):
-    img_files.append("train_data/" + str(i) + ".jpg")
+    img_files.append("data_base/train_data/" + str(i) + ".jpg")
 
 # ### Creating target labels
 # 
@@ -129,13 +129,13 @@ var1=np.cumsum(np.round(pca.explained_variance_ratio_, decimals=4)*100)
 import pickle
 import os
 
-if not os.path.exists('prediction_data'):
-    os.makedirs('prediction_data')
+if not os.path.exists('data_base/prediction_data'):
+    os.makedirs('data_base/prediction_data')
 
-pkl_filename = "prediction_data/pickle_model.pkl" 
+pkl_filename = "data_base/prediction_data/pickle_model.pkl" 
 with open(pkl_filename, 'wb') as file:  
     pickle.dump(svm_clf, file)
 
-pkl_filename = "prediction_data/my_scaler.pkl"
+pkl_filename = "data_base/prediction_data/my_scaler.pkl"
 with open(pkl_filename, 'wb') as file:  
     pickle.dump(sc_X, file)

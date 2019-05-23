@@ -53,12 +53,12 @@ func copy(src, dst string) (int64, error) {
 }
 
 func getTestImage(classID int) string {
-	return filepath.Join(os.Getenv("GOPATH"), "src", "server", "testAux", "standardleaves", strconv.Itoa(classID+1)+".jpg")
+	return filepath.Join(os.Getenv("GOPATH"), "data_base", "testAux", "standardleaves", strconv.Itoa(classID+1)+".jpg")
 }
 
 func createFakeImage(fakeName string, classID int) error {
 	source := getTestImage(classID)
-	destination := filepath.Join(os.Getenv("GOPATH"), "data_store", fakeName+".jpg")
+	destination := filepath.Join(os.Getenv("GOPATH"), "data_base", "queries", fakeName+".jpg")
 	_, err := copy(source, destination)
 	return err
 }

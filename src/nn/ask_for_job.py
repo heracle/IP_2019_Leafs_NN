@@ -117,11 +117,11 @@ def get_svm():
 
     
 
-    pkl_filename = os.path.join(os.environ.get('GOPATH'), 'prediction_data', 'pickle_model.pkl') 
+    pkl_filename = os.path.join(os.environ.get('GOPATH'), 'data_base', 'prediction_data', 'pickle_model.pkl') 
     with open(pkl_filename, 'rb') as file:
         svm_clf = pickle.load(file)
     
-    pkl_filename = os.path.join(os.environ.get('GOPATH'), 'prediction_data', 'my_scaler.pkl')
+    pkl_filename = os.path.join(os.environ.get('GOPATH'), 'data_base', 'prediction_data', 'my_scaler.pkl')
     with open(pkl_filename, 'rb') as file:
         loaded_scaler = pickle.load(file)
 
@@ -142,8 +142,8 @@ def main():
     args = parser.parse_args()
 
     global output_filename
-    output_filename = os.path.join(os.environ.get('GOPATH'), 'data_store', args.jobid + '.txt') 
-    image_filename = os.path.join(os.environ.get('GOPATH'), 'data_store', args.jobid + '.jpg')
+    output_filename = os.path.join(os.environ.get('GOPATH'), 'data_base', 'queries', args.jobid + '.txt') 
+    image_filename = os.path.join(os.environ.get('GOPATH'), 'data_base', 'queries', args.jobid + '.jpg')
 
     bg_rem_img = None
     try:

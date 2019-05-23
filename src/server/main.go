@@ -58,6 +58,45 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBody)
 }
 
+type jsonToken struct {
+	Token string `json:"token"`
+}
+
+// mux.HandleFunc("/get_history", createHistoryEndpoint)
+func createHistoryEndpoint(w http.ResponseWriter, r *http.Request) {
+	bodyP, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request body",
+			http.StatusInternalServerError)
+	}
+
+	var bodyObj jsonToken
+	if err := json.Unmarshal(bodyP, &bodyObj); err != nil {
+		http.Error(w, "Error while apply unmarshal on the received body to get the JSON",
+			http.StatusInternalServerError)
+	}
+
+	user, err := getUserFromToken(bodyObj.Token)
+	if err != nil {
+		http.Error(w, "failed to find user from token",
+			http.StatusInternalServerError)
+	}
+
+	entireHistory, err := GenerateHistoryInfo(user)
+	if err != nil {
+		http.Error(w, "Internal error while creating the GenerateHistoryInfo",
+			http.StatusInternalServerError)
+	}
+
+	ret, err := json.Marshal(&entireHistory)
+	if err != nil {
+		http.Error(w, "Internal error: failed to Marshal the json",
+			http.StatusInternalServerError)
+	}
+
+	w.Write(ret)
+}
+
 // mux.HandleFunc("/all_classes", createAllClassesEndpoint)
 func createAllClassesEndpoint(w http.ResponseWriter, r *http.Request) {
 	allClasses, err := infogen.GenerateAllClassesInfo()
@@ -213,6 +252,7 @@ func startServer(port string, needTrain bool) {
 	mux.HandleFunc("/test", validateMiddleware(testEndpoint))
 
 	mux.HandleFunc("/all_classes", createAllClassesEndpoint)
+	mux.HandleFunc("/get_history", createHistoryEndpoint)
 
 	if needTrain {
 		// Train the neural network using python script.

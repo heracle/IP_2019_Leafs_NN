@@ -1,6 +1,9 @@
 package main
 
 import (
+	"encoding/base64"
+	"encoding/json"
+
 	"github.com/pkg/errors"
 
 	"fmt"
@@ -12,7 +15,66 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/mitchellh/mapstructure"
+	infogen "server_answer"
 )
+
+type QueryHistory struct {
+	Photo  string
+	Answer infogen.QueryInfo
+}
+
+type HistoryData struct {
+	Data []QueryHistory
+}
+
+// GenerateHistoryInfo returns all the info about the user's history.
+func GenerateHistoryInfo(user string) (*HistoryData, error) {
+	// var ret HistoryData
+	userDir := getUserDir(user)
+	sizeHistory := getNoQueries(user, false)
+
+	history := make([]QueryHistory, sizeHistory)
+
+	for index := 1; index <= sizeHistory; index++ {
+		fdImg, err := os.Open(filepath.Join(userDir, strconv.Itoa(index)+".jpg"))
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to open img file")
+		}
+		defer fdImg.Close()
+
+		// Make base64 from []byte image.
+		imgBytes := make([]byte, 200000)
+		sizeOutput, err := fdImg.Read(imgBytes)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to read image bytes")
+		}
+		imgBytes = imgBytes[:sizeOutput]
+
+		var act QueryHistory
+
+		act.Photo = base64.StdEncoding.EncodeToString(imgBytes)
+
+		fdJSON, err := os.Open(filepath.Join(userDir, strconv.Itoa(index)+".json"))
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to open img file")
+		}
+		defer fdJSON.Close()
+
+		jsonBytes := make([]byte, 200000)
+		sizeOutput, err = fdJSON.Read(jsonBytes)
+		jsonBytes = jsonBytes[:sizeOutput]
+
+		err = json.Unmarshal(jsonBytes, &act.Answer)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to unmarshal the internal history json")
+		}
+
+		history[index - 1] = act
+	}
+	var ret HistoryData
+	ret.Data = history
+	return &ret, nil
+}
 
 func getUserDir(user string) string {
 	path := filepath.Join(os.Getenv("GOPATH"), "data_base", "users_data", user)

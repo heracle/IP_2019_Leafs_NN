@@ -58,6 +58,23 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBody)
 }
 
+// mux.HandleFunc("/all_classes", createAllClassesEndpoint)
+func createAllClassesEndpoint(w http.ResponseWriter, r *http.Request) {
+	allClasses, err := infogen.GenerateAllClassesInfo()
+	if err != nil {
+		http.Error(w, "Internal error while creating the AllClassesInfo",
+			http.StatusInternalServerError)
+	}
+
+	ret, err := json.Marshal(&allClasses)
+	if err != nil {
+		http.Error(w, "Internal error: failed to Marshal the json",
+			http.StatusInternalServerError)
+	}
+
+	w.Write(ret)
+}
+
 type jsonClass struct {
 	Token string `json:"token"`
 	Photo string `json:"photo"`
@@ -131,9 +148,13 @@ func evaluateReceivedBody(bodyP []byte) ([]byte, error) {
 		return nil, errors.Wrapf(err, "failed to get classID after NN execution")
 	}
 
-	ret, err := infogen.GetInfoForClass(classID)
+	jsonObj, err := infogen.GetInfoForClass(classID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get YAML bytes for classID %v", classID)
+	}
+	ret, err := json.Marshal(&jsonObj)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to Marshal the json")
 	}
 
 	// Do not forget the history.
@@ -190,6 +211,8 @@ func startServer(port string, needTrain bool) {
 	mux.HandleFunc("/authenticate", createTokenEndpoint)
 	mux.HandleFunc("/protected", protectedEndpoint)
 	mux.HandleFunc("/test", validateMiddleware(testEndpoint))
+
+	mux.HandleFunc("/all_classes", createAllClassesEndpoint)
 
 	if needTrain {
 		// Train the neural network using python script.

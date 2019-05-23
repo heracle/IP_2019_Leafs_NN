@@ -1,9 +1,6 @@
 package infogen
 
 import (
-	"encoding/json"
-	"github.com/pkg/errors"
-
 	"strconv"
 )
 
@@ -84,16 +81,11 @@ var wikiLinks = []string{
 }
 
 // GetInfoForClass returns a json with details about the plant with "classID".
-func GetInfoForClass(classID int) ([]byte, error) {
+func GetInfoForClass(classID int) (*QueryInfo, error) {
 	jsonObj := new(QueryInfo)
 	jsonObj.ID = strconv.Itoa(classID)
 	jsonObj.Common_name = commonNames[classID]
 	jsonObj.Specific_name = specificNames[classID]
 	jsonObj.Details.Wikipedia = wikiLinks[classID]
-
-	ret, err := json.Marshal(&jsonObj)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to Marshal the json")
-	}
-	return ret, nil
+	return jsonObj, nil
 }

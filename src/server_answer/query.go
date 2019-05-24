@@ -84,6 +84,12 @@ var wikiLinks = []string{
 func GetInfoForClass(classID int) (*QueryInfo, error) {
 	jsonObj := new(QueryInfo)
 	jsonObj.ID = strconv.Itoa(classID)
+
+	if classID < 0 || classID > len(commonNames) {
+		jsonObj.Common_name = "Could not find any leaf in the image"
+		return jsonObj, nil
+	}
+
 	jsonObj.Common_name = commonNames[classID]
 	jsonObj.Specific_name = specificNames[classID]
 	jsonObj.Details.Wikipedia = wikiLinks[classID]

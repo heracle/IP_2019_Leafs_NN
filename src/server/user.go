@@ -43,7 +43,7 @@ func GenerateHistoryInfo(user string) (*HistoryData, error) {
 		defer fdImg.Close()
 
 		// Make base64 from []byte image.
-		imgBytes := make([]byte, 200000)
+		imgBytes := make([]byte, 2000000)
 		sizeOutput, err := fdImg.Read(imgBytes)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read image bytes")
@@ -60,7 +60,7 @@ func GenerateHistoryInfo(user string) (*HistoryData, error) {
 		}
 		defer fdJSON.Close()
 
-		jsonBytes := make([]byte, 200000)
+		jsonBytes := make([]byte, 2000000)
 		sizeOutput, err = fdJSON.Read(jsonBytes)
 		jsonBytes = jsonBytes[:sizeOutput]
 
